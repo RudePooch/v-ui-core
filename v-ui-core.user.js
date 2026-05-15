@@ -357,6 +357,31 @@ const CustomMenu = (() => {
 
         // Restore open/closed state
         state.open ? show() : hide();
+
+        // Clamp to screen on window resize
+        window.addEventListener('resize', clampPosition);
+    }
+
+    //////////////////////
+    // CLAMP POSITION
+    //////////////////////
+    function clampPosition() {
+        if (!menuEl || !isOpen || window.innerWidth <= config.mobileBreakpoint) return;
+
+        const width = menuEl.offsetWidth;
+        const height = menuEl.offsetHeight;
+
+        let left = parseFloat(state.left) || 0;
+        let top = parseFloat(state.top) || 0;
+
+        left = Math.max(0, Math.min(window.innerWidth - width, left));
+        top = Math.max(0, Math.min(window.innerHeight - height, top));
+
+        state.left = left + "px";
+        state.top = top + "px";
+
+        menuEl.style.left = state.left;
+        menuEl.style.top = state.top;
     }
 
     //////////////////////
@@ -384,6 +409,8 @@ const CustomMenu = (() => {
             state.sections[title] = open;
             saveState();
             updateHeader();
+            // Clamp position in case opening the panel pushes the menu off the bottom
+            setTimeout(clampPosition, 10);
         });
 
         updateHeader();
@@ -415,6 +442,7 @@ const CustomMenu = (() => {
         isOpen = true;
         state.open = true;
 
+        clampPosition();
         saveState();
     }
 
@@ -474,8 +502,7 @@ const CustomMenu = (() => {
             state.left = e.clientX - offsetX + "px";
             state.top = e.clientY - offsetY + "px";
 
-            el.style.left = state.left;
-            el.style.top = state.top;
+            clampPosition();
         });
 
         // Stop dragging
@@ -682,7 +709,7 @@ const VisualEditor = (() => {
 
         // Default is on the right side of the screen, expanding to the RIGHT.
         // (Equivalent of the old right anchor: calc(50vw + 542px))
-        containerLeft: "calc(50vw + 542px)",
+        containerLeft: "calc(50vw + 522px)",
         containerRight: "auto",
 
         containerBottom: "auto",
