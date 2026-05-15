@@ -773,14 +773,18 @@ const VisualEditor = (() => {
     }
 
     function create() {
-        // Prevent creating multiple buttons for the same script
-        if (document.getElementById(BTN_ID)) return;
+        // If the button already exists, just update its icon and return
+        let btn = document.getElementById(BTN_ID);
+        if (btn) {
+            btn.style.backgroundImage = `url(${config.iconUrl})`;
+            return;
+        }
 
         // Get or create the shared container
         const container = createContainer();
 
         // Actual button
-        const btn = document.createElement('button');
+        btn = document.createElement('button');
         btn.id = BTN_ID;
         btn.style.backgroundImage = `url(${config.iconUrl})`;
 
@@ -801,7 +805,9 @@ const VisualEditor = (() => {
     //////////////////////
     // APPLY STYLES AND CREATE BUTTON
     //////////////////////
-    function apply() {
+    function apply(options = {}) {
+        Object.assign(config, options);
+
         if (!config.iconUrl) return;
 
         // Note: Multiple scripts will inject these styles. The last injected script
