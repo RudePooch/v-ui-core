@@ -110,6 +110,22 @@ const UI = {
     },
 
     // --------------------
+    // Create a textarea
+    // --------------------
+    textarea(placeholder, value, onChange, rows = 3) {
+        const ta = document.createElement("textarea");
+        ta.placeholder = placeholder;
+        ta.value = value;
+        ta.rows = rows;
+        ta.style.fontSize = UI.style.fontSize;
+        ta.style.resize = "vertical";
+
+        ta.addEventListener("input", () => onChange(ta.value));
+
+        return ta;
+    },
+
+    // --------------------
     // Create a button
     // --------------------
     button(text, onClick) {
@@ -588,10 +604,9 @@ const CustomMenu = (() => {
 
             /* Inputs and selects */
             #${MENU_ID} input,
-            #${MENU_ID} select {
+            #${MENU_ID} select,
+            #${MENU_ID} textarea {
                 width: 100%;
-
-                height: 22px;
 
                 margin: 2px 0 4px 0;
 
@@ -606,6 +621,16 @@ const CustomMenu = (() => {
                 font-size: 12px;
 
                 box-sizing: border-box;
+            }
+
+            #${MENU_ID} input,
+            #${MENU_ID} select {
+                height: 22px;
+            }
+
+            #${MENU_ID} textarea {
+                padding: 4px;
+                font-family: inherit;
             }
 
             #${MENU_ID},
