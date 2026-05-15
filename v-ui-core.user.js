@@ -682,7 +682,7 @@ const VisualEditor = (() => {
 
         // Default is on the right side of the screen, expanding to the RIGHT.
         // (Equivalent of the old right anchor: calc(50vw + 542px))
-        containerLeft: "calc(50vw + 522px)",
+        containerLeft: "calc(50vw + 542px)",
         containerRight: "auto",
 
         containerBottom: "auto",
