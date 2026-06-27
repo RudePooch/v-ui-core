@@ -832,7 +832,26 @@ const VisualEditor = (() => {
             document.body.appendChild(container);
 
             // Restore saved position if it exists
-            const savedPos = localStorage.getItem(POSITION_KEY);
+            let savedPos = localStorage.getItem(POSITION_KEY);
+
+            // SMART FALLBACK POSITIONING:
+            // If this script doesn't have a saved position, check if visuals has one, and render to its right!
+            if (!savedPos && PREFIX.includes("market-ac130")) {
+                const visualsPosRaw = localStorage.getItem("visuals-ui-button-container-position");
+                if (visualsPosRaw) {
+                    try {
+                        const vPos = JSON.parse(visualsPosRaw);
+                        if (vPos && vPos.left && vPos.top) {
+                            const leftVal = parseFloat(vPos.left) || 0;
+                            savedPos = JSON.stringify({
+                                left: `${leftVal + 44}px`,
+                                top: vPos.top
+                            });
+                        }
+                    } catch (e) {}
+                }
+            }
+
             if (savedPos) {
                 try {
                     const pos = JSON.parse(savedPos);
