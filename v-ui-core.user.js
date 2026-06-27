@@ -716,11 +716,11 @@ const VisualEditor = (() => {
     const PREFIX = scriptIdentifier.replace(/[^a-z0-9]/gi, '-').toLowerCase();
 
     // Unique container ID per script for individual floating button positioning
-    const CONTAINER_ID = `${PREFIX}-ui-button-container`;
-    const POSITION_KEY = `${PREFIX}-ui-button-container-position`;
+    let CONTAINER_ID = `${PREFIX}-ui-button-container`;
+    let POSITION_KEY = `${PREFIX}-ui-button-container-position`;
 
     // Unique button ID for this specific script
-    const BTN_ID = `${PREFIX}-visual-editor-btn`;
+    let BTN_ID = `${PREFIX}-visual-editor-btn`;
 
     const config = {
         iconUrl: "https://avatars.githubusercontent.com/u/82180782?v=4",
@@ -764,7 +764,7 @@ const VisualEditor = (() => {
     //////////////////////
 
     let isDragging = false;
-    let hasMoved = false;
+    let isEditMode = false;
     let startX = 0;
     let startY = 0;
     let containerLeft = 0;
@@ -792,6 +792,59 @@ const VisualEditor = (() => {
     setTimeout(deduplicateContainers, 3000);
     window.addEventListener("load", deduplicateContainers);
     document.addEventListener("DOMContentLoaded", deduplicateContainers);
+
+    function makeContainerDraggable(container) {
+        container.addEventListener("pointerdown", (e) => {
+            if (!isEditMode) return;
+            
+            isDragging = true;
+            container.setPointerCapture(e.pointerId);
+            
+            const rect = container.getBoundingClientRect();
+            startX = e.clientX;
+            startY = e.clientY;
+            containerLeft = rect.left;
+            containerTop = rect.top;
+            
+            e.stopPropagation();
+            e.preventDefault();
+        });
+
+        container.addEventListener("pointermove", (e) => {
+            if (!isDragging) return;
+            
+            const deltaX = e.clientX - startX;
+            const deltaY = e.clientY - startY;
+            
+            const newLeft = containerLeft + deltaX;
+            const newTop = containerTop + deltaY;
+            
+            container.style.position = "fixed";
+            container.style.left = `${newLeft}px`;
+            container.style.top = `${newTop}px`;
+            container.style.right = "auto";
+            container.style.bottom = "auto";
+            container.style.transform = "none";
+            
+            e.stopPropagation();
+            e.preventDefault();
+        });
+
+        container.addEventListener("pointerup", (e) => {
+            if (!isDragging) return;
+            isDragging = false;
+            
+            // Save position to localStorage
+            const rect = container.getBoundingClientRect();
+            localStorage.setItem(POSITION_KEY, JSON.stringify({
+                left: `${rect.left}px`,
+                top: `${rect.top}px`
+            }));
+            
+            e.stopPropagation();
+            e.preventDefault();
+        });
+    }
 
     function createContainer() {
         let container = document.getElementById(CONTAINER_ID);
@@ -824,6 +877,8 @@ const VisualEditor = (() => {
                     }
                 } catch (e) {}
             }
+
+            makeContainerDraggable(container);
         }
         return container;
     }
@@ -844,84 +899,84 @@ const VisualEditor = (() => {
         btn.id = BTN_ID;
         btn.style.backgroundImage = `url(${config.iconUrl})`;
 
-        // Touch drag & double-tap dock support directly on the button
+        let longPressTimer = null;
+        let longPressTriggered = false;
+        let startTouchX = 0;
+        let startTouchY = 0;
+
         btn.addEventListener("pointerdown", (e) => {
             e.preventDefault();
             btn.setPointerCapture(e.pointerId);
-            
-            // Double-tap to reset position back to default
-            const now = Date.now();
-            if (now - lastTapTime < 300) {
-                localStorage.removeItem(POSITION_KEY);
-                container.style.position = "";
-                container.style.left = "";
-                container.style.top = "";
-                container.style.right = "";
-                container.style.bottom = "";
-                container.style.transform = "";
-                
-                if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-                isDragging = false;
-                hasMoved = false;
-                return;
-            }
-            lastTapTime = now;
+            longPressTriggered = false;
+            startTouchX = e.clientX;
+            startTouchY = e.clientY;
 
-            isDragging = true;
-            hasMoved = false;
-            
-            startX = e.clientX;
-            startY = e.clientY;
-            
-            const rect = container.getBoundingClientRect();
-            containerLeft = rect.left;
-            containerTop = rect.top;
+            // Short hold (600ms) to toggle Edit Mode
+            longPressTimer = setTimeout(() => {
+                longPressTriggered = true;
+                isEditMode = !isEditMode;
+                const c = document.getElementById(CONTAINER_ID);
+                if (c) {
+                    if (isEditMode) {
+                        c.classList.add('vch-container-edit-mode');
+                        if (navigator.vibrate) navigator.vibrate(100);
+                    } else {
+                        c.classList.remove('vch-container-edit-mode');
+                        if (navigator.vibrate) navigator.vibrate([50, 50]);
+                    }
+                }
+            }, 600);
         });
 
         btn.addEventListener("pointermove", (e) => {
-            if (!isDragging) return;
-            
-            const deltaX = e.clientX - startX;
-            const deltaY = e.clientY - startY;
-            
-            // Set moving state if drag threshold is crossed (more than 6px of finger motion)
-            if (!hasMoved && Math.hypot(deltaX, deltaY) > 6) {
-                hasMoved = true;
-            }
-
-            if (hasMoved) {
-                const newLeft = containerLeft + deltaX;
-                const newTop = containerTop + deltaY;
-                
-                container.style.position = "fixed";
-                container.style.left = `${newLeft}px`;
-                container.style.top = `${newTop}px`;
-                container.style.right = "auto";
-                container.style.bottom = "auto";
-                container.style.transform = "none";
+            if (!longPressTriggered && longPressTimer) {
+                // If they moved more than 5px, cancel the long press
+                const dist = Math.hypot(e.clientX - startTouchX, e.clientY - startTouchY);
+                if (dist > 5) {
+                    clearTimeout(longPressTimer);
+                    longPressTimer = null;
+                }
             }
         });
 
         btn.addEventListener("pointerup", (e) => {
-            if (!isDragging) return;
-            isDragging = false;
-            
-            if (hasMoved) {
-                // If it was dragged, save coordinates
-                const rect = container.getBoundingClientRect();
-                localStorage.setItem(POSITION_KEY, JSON.stringify({
-                    left: `${rect.left}px`,
-                    top: `${rect.top}px`
-                }));
-            } else {
-                // If it was a quick tap, toggle custom menu
-                CustomMenu.toggle();
+            e.preventDefault();
+            clearTimeout(longPressTimer);
+
+            if (!longPressTriggered) {
+                // Double-tap to reset position back to default
+                const now = Date.now();
+                if (now - lastTapTime < 300) {
+                    localStorage.removeItem(POSITION_KEY);
+                    container.style.position = "";
+                    container.style.left = "";
+                    container.style.top = "";
+                    container.style.right = "";
+                    container.style.bottom = "";
+                    container.style.transform = "";
+                    
+                    isEditMode = false;
+                    container.classList.remove('vch-container-edit-mode');
+                    if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+                    return;
+                }
+                lastTapTime = now;
+
+                if (isEditMode) {
+                    isEditMode = false;
+                    const c = document.getElementById(CONTAINER_ID);
+                    if (c) {
+                        c.classList.remove('vch-container-edit-mode');
+                        if (navigator.vibrate) navigator.vibrate(50);
+                    }
+                } else {
+                    CustomMenu.toggle();
+                }
             }
         });
 
         btn.addEventListener("pointercancel", (e) => {
-            isDragging = false;
-            hasMoved = false;
+            clearTimeout(longPressTimer);
         });
 
         // Add button to the container
@@ -938,6 +993,12 @@ const VisualEditor = (() => {
         Object.assign(config, options);
 
         if (!config.iconUrl) return;
+
+        // Use custom id if provided to allow independent button repositioning
+        const id = options.id || PREFIX;
+        CONTAINER_ID = `${id}-ui-button-container`;
+        POSITION_KEY = `${id}-ui-button-container-position`;
+        BTN_ID = `${id}-visual-editor-btn`;
 
         // Note: Multiple scripts will inject these styles. The last injected script
         // will determine the final layout of the shared container.
@@ -956,6 +1017,17 @@ const VisualEditor = (() => {
                 gap: ${config.containerGap};
                 align-items: center;
                 justify-content: center;
+            }
+
+            /* CONTAINER EDIT MODE STYLING */
+            #${CONTAINER_ID}.vch-container-edit-mode {
+                border: 2px dashed #00aaff !important;
+                background: rgba(0, 170, 255, 0.25) !important;
+                padding: 6px !important;
+                border-radius: 8px !important;
+                box-shadow: 0 0 15px rgba(0, 170, 255, 0.6) !important;
+                cursor: move !important;
+                touch-action: none !important;
             }
 
             /* BUTTON DEFAULTS */
