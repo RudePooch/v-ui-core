@@ -1057,12 +1057,12 @@ const VisualEditor = (() => {
             /* MOBILE OVERRIDES */
             @media (max-width: ${config.mobileBreakpoint}) {
                 #${CONTAINER_ID} {
-                    position: ${config.mobileContainerPosition} !important;
-                    top: ${config.mobileContainerTop} !important;
-                    left: ${config.mobileContainerLeft} !important;
-                    right: ${config.mobileContainerRight} !important;
-                    bottom: ${config.mobileContainerBottom} !important;
-                    transform: ${config.mobileContainerTransform} !important;
+                    position: ${config.mobileContainerPosition};
+                    top: ${config.mobileContainerTop};
+                    left: ${config.mobileContainerLeft};
+                    right: ${config.mobileContainerRight};
+                    bottom: ${config.mobileContainerBottom};
+                    transform: ${config.mobileContainerTransform};
 
                     flex-direction: ${config.mobileDirection} !important;
                 }
