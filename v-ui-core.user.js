@@ -768,10 +768,32 @@ const VisualEditor = (() => {
     let startY = 0;
     let containerLeft = 0;
     let containerTop = 0;
+    let lastTapTime = 0;
 
     function makeContainerDraggable(container) {
         container.addEventListener("pointerdown", (e) => {
             if (!isEditMode) return;
+
+            // Double-tap / double-click to reset back to default docked position
+            const now = Date.now();
+            if (now - lastTapTime < 300) {
+                localStorage.removeItem('vch-ui-button-container-position');
+                container.style.position = "";
+                container.style.left = "";
+                container.style.top = "";
+                container.style.right = "";
+                container.style.bottom = "";
+                container.style.transform = "";
+
+                isEditMode = false;
+                container.classList.remove('vch-container-edit-mode');
+                if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+
+                e.stopPropagation();
+                e.preventDefault();
+                return;
+            }
+            lastTapTime = now;
             
             isDragging = true;
             container.setPointerCapture(e.pointerId);
