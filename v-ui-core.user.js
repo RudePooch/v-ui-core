@@ -762,12 +762,107 @@ const VisualEditor = (() => {
     // CREATE DOM ELEMENTS
     //////////////////////
 
+    let isDragging = false;
+    let isEditMode = false;
+    let startX = 0;
+    let startY = 0;
+    let containerLeft = 0;
+    let containerTop = 0;
+
+    function makeContainerDraggable(container) {
+        container.addEventListener("pointerdown", (e) => {
+            if (!isEditMode) return;
+            
+            isDragging = true;
+            container.setPointerCapture(e.pointerId);
+            
+            const rect = container.getBoundingClientRect();
+            startX = e.clientX;
+            startY = e.clientY;
+            containerLeft = rect.left;
+            containerTop = rect.top;
+            
+            e.stopPropagation();
+            e.preventDefault();
+        });
+
+        container.addEventListener("pointermove", (e) => {
+            if (!isDragging) return;
+            
+            const deltaX = e.clientX - startX;
+            const deltaY = e.clientY - startY;
+            
+            const newLeft = containerLeft + deltaX;
+            const newTop = containerTop + deltaY;
+            
+            container.style.position = "fixed";
+            container.style.left = `${newLeft}px`;
+            container.style.top = `${newTop}px`;
+            container.style.right = "auto";
+            container.style.bottom = "auto";
+            container.style.transform = "none";
+            
+            e.stopPropagation();
+            e.preventDefault();
+        });
+
+        container.addEventListener("pointerup", (e) => {
+            if (!isDragging) return;
+            isDragging = false;
+            
+            // Save position to localStorage
+            const rect = container.getBoundingClientRect();
+            localStorage.setItem('vch-ui-button-container-position', JSON.stringify({
+                left: `${rect.left}px`,
+                top: `${rect.top}px`
+            }));
+            
+            e.stopPropagation();
+            e.preventDefault();
+        });
+    }
+
     function createContainer() {
         let container = document.getElementById(CONTAINER_ID);
+        
+        // De-duplicate if multiple containers exist
+        const containers = document.querySelectorAll(`#${CONTAINER_ID}`);
+        if (containers.length > 1) {
+            container = containers[0];
+            for (let i = 1; i < containers.length; i++) {
+                while (containers[i].firstChild) {
+                    container.appendChild(containers[i].firstChild);
+                }
+                containers[i].remove();
+            }
+        }
+
         if (!container) {
             container = document.createElement('div');
             container.id = CONTAINER_ID;
-            document.body.appendChild(container);
+            
+            const parent = document.body || document.documentElement;
+            if (parent) {
+                parent.appendChild(container);
+            }
+
+            // Restore saved position if it exists
+            const savedPos = localStorage.getItem('vch-ui-button-container-position');
+            if (savedPos) {
+                try {
+                    const pos = JSON.parse(savedPos);
+                    if (pos && pos.top && pos.left) {
+                        container.style.position = "fixed";
+                        container.style.top = pos.top;
+                        container.style.left = pos.left;
+                        container.style.right = "auto";
+                        container.style.bottom = "auto";
+                        container.style.transform = "none";
+                    }
+                } catch (e) {}
+            }
+
+            makeContainerDraggable(container);
         }
         return container;
     }
@@ -788,14 +883,64 @@ const VisualEditor = (() => {
         btn.id = BTN_ID;
         btn.style.backgroundImage = `url(${config.iconUrl})`;
 
-        // Clicking the button toggles the CustomMenu
+        let longPressTimer = null;
+        let longPressTriggered = false;
+        let startTouchX = 0;
+        let startTouchY = 0;
+
         btn.addEventListener("pointerdown", (e) => {
             e.preventDefault();
-
-            // Important: ensures mobile doesn't cancel event mid-touch
             btn.setPointerCapture(e.pointerId);
+            longPressTriggered = false;
+            startTouchX = e.clientX;
+            startTouchY = e.clientY;
 
-            CustomMenu.toggle();
+            longPressTimer = setTimeout(() => {
+                longPressTriggered = true;
+                isEditMode = !isEditMode;
+                const c = document.getElementById(CONTAINER_ID);
+                if (c) {
+                    if (isEditMode) {
+                        c.classList.add('vch-container-edit-mode');
+                        if (navigator.vibrate) navigator.vibrate(100);
+                    } else {
+                        c.classList.remove('vch-container-edit-mode');
+                        if (navigator.vibrate) navigator.vibrate([50, 50]);
+                    }
+                }
+            }, 2000);
+        });
+
+        btn.addEventListener("pointermove", (e) => {
+            if (!longPressTriggered && longPressTimer) {
+                const dist = Math.hypot(e.clientX - startTouchX, e.clientY - startTouchY);
+                if (dist > 5) {
+                    clearTimeout(longPressTimer);
+                    longPressTimer = null;
+                }
+            }
+        });
+
+        btn.addEventListener("pointerup", (e) => {
+            e.preventDefault();
+            clearTimeout(longPressTimer);
+
+            if (!longPressTriggered) {
+                if (isEditMode) {
+                    isEditMode = false;
+                    const c = document.getElementById(CONTAINER_ID);
+                    if (c) {
+                        c.classList.remove('vch-container-edit-mode');
+                        if (navigator.vibrate) navigator.vibrate(50);
+                    }
+                } else {
+                    CustomMenu.toggle();
+                }
+            }
+        });
+
+        btn.addEventListener("pointercancel", (e) => {
+            clearTimeout(longPressTimer);
         });
 
         // Add button to the container
@@ -827,6 +972,17 @@ const VisualEditor = (() => {
                 gap: ${config.containerGap};
                 align-items: center;
                 justify-content: center;
+            }
+
+            /* CONTAINER EDIT MODE STYLING */
+            #${CONTAINER_ID}.vch-container-edit-mode {
+                border: 2px dashed #00aaff !important;
+                background: rgba(0, 170, 255, 0.25) !important;
+                padding: 6px !important;
+                border-radius: 8px !important;
+                box-shadow: 0 0 15px rgba(0, 170, 255, 0.6) !important;
+                cursor: move !important;
+                touch-action: none !important;
             }
 
             /* BUTTON DEFAULTS */
