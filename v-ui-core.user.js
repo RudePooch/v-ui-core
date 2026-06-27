@@ -818,6 +818,13 @@ const VisualEditor = (() => {
                 left: `${rect.left}px`,
                 top: `${rect.top}px`
             }));
+
+            // Automatically lock and unhighlight on release
+            if (isEditMode) {
+                isEditMode = false;
+                container.classList.remove('vch-container-edit-mode');
+                if (navigator.vibrate) navigator.vibrate(50);
+            }
             
             e.stopPropagation();
             e.preventDefault();
