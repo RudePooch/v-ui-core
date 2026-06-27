@@ -771,28 +771,6 @@ const VisualEditor = (() => {
     let containerTop = 0;
     let lastTapTime = 0;
 
-    function deduplicateContainers() {
-        const containers = document.querySelectorAll(`#${CONTAINER_ID}`);
-        if (containers.length > 1) {
-            const primary = containers[0];
-            for (let i = 1; i < containers.length; i++) {
-                while (containers[i].firstChild) {
-                    primary.appendChild(containers[i].firstChild);
-                }
-                containers[i].remove();
-            }
-            console.log("[v-ui-core] Deduplicated button containers.");
-        }
-    }
-
-    // Trigger de-duplication sweeps on boot and page load events
-    setTimeout(deduplicateContainers, 100);
-    setTimeout(deduplicateContainers, 500);
-    setTimeout(deduplicateContainers, 1500);
-    setTimeout(deduplicateContainers, 3000);
-    window.addEventListener("load", deduplicateContainers);
-    document.addEventListener("DOMContentLoaded", deduplicateContainers);
-
     function makeContainerDraggable(container) {
         container.addEventListener("pointerdown", (e) => {
             if (!isEditMode) return;
@@ -848,19 +826,10 @@ const VisualEditor = (() => {
 
     function createContainer() {
         let container = document.getElementById(CONTAINER_ID);
-        
-        // De-duplicate immediately if possible
-        deduplicateContainers();
-        container = document.getElementById(CONTAINER_ID);
-
         if (!container) {
             container = document.createElement('div');
             container.id = CONTAINER_ID;
-            
-            const parent = document.body || document.documentElement;
-            if (parent) {
-                parent.appendChild(container);
-            }
+            document.body.appendChild(container);
 
             // Restore saved position if it exists
             const savedPos = localStorage.getItem(POSITION_KEY);
@@ -981,9 +950,6 @@ const VisualEditor = (() => {
 
         // Add button to the container
         container.appendChild(btn);
-
-        // De-duplicate again after appending button
-        deduplicateContainers();
     }
 
     //////////////////////
@@ -993,9 +959,6 @@ const VisualEditor = (() => {
         Object.assign(config, options);
 
         if (!config.iconUrl) return;
-
-        // Create the button in the DOM
-        create();
 
         // Note: Multiple scripts will inject these styles. The last injected script
         // will determine the final layout of the shared container.
