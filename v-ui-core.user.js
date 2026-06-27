@@ -715,12 +715,12 @@ const VisualEditor = (() => {
 
     const PREFIX = scriptIdentifier.replace(/[^a-z0-9]/gi, '-').toLowerCase();
 
-    // Unique container ID per script for individual floating button positioning
-    let CONTAINER_ID = `${PREFIX}-ui-button-container`;
-    let POSITION_KEY = `${PREFIX}-ui-button-container-position`;
+    // Shared container ID so multiple scripts can use the same container
+    const CONTAINER_ID = `vch-ui-button-container`;
+    const POSITION_KEY = `vch-ui-button-container-position`;
 
     // Unique button ID for this specific script
-    let BTN_ID = `${PREFIX}-visual-editor-btn`;
+    const BTN_ID = `${PREFIX}-visual-editor-btn`;
 
     const config = {
         iconUrl: "https://avatars.githubusercontent.com/u/82180782?v=4",
@@ -994,11 +994,8 @@ const VisualEditor = (() => {
 
         if (!config.iconUrl) return;
 
-        // Use custom id if provided to allow independent button repositioning
-        const id = options.id || PREFIX;
-        CONTAINER_ID = `${id}-ui-button-container`;
-        POSITION_KEY = `${id}-ui-button-container-position`;
-        BTN_ID = `${id}-visual-editor-btn`;
+        // Create the button in the DOM
+        create();
 
         // Note: Multiple scripts will inject these styles. The last injected script
         // will determine the final layout of the shared container.
