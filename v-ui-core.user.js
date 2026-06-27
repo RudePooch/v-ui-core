@@ -977,6 +977,22 @@ const VisualEditor = (() => {
                 } else {
                     CustomMenu.toggle();
                 }
+            } else {
+                // Auto-lock and dehighlight on release after drag
+                isDragging = false;
+                
+                // Save position to localStorage
+                const rect = container.getBoundingClientRect();
+                localStorage.setItem(POSITION_KEY, JSON.stringify({
+                    left: `${rect.left}px`,
+                    top: `${rect.top}px`
+                }));
+
+                if (isEditMode) {
+                    isEditMode = false;
+                    container.classList.remove('vch-container-edit-mode');
+                    if (navigator.vibrate) navigator.vibrate(50);
+                }
             }
         });
 
