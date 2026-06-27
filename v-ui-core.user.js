@@ -295,10 +295,10 @@ const FeatureRegistry = (() => {
 
 // CUSTOM MENU
 const CustomMenu = (() => {
-    const PREFIX = (GM_info?.script?.name || "script").replace(/[^a-z0-9]/gi, '-').toLowerCase();
-    const MENU_ID = `${PREFIX}-custom-menu`;
-    const HEADER_ID = `${PREFIX}-custom-menu-header`;
-    const BODY_ID = `${PREFIX}-custom-menu-body`;
+    let PREFIX = (GM_info?.script?.name || "script").replace(/[^a-z0-9]/gi, '-').toLowerCase();
+    let MENU_ID = `${PREFIX}-custom-menu`;
+    let HEADER_ID = `${PREFIX}-custom-menu-header`;
+    let BODY_ID = `${PREFIX}-custom-menu-body`;
 
     // Default menu configuration
     const config = {
@@ -312,7 +312,7 @@ const CustomMenu = (() => {
         mobileBreakpoint: 768
     };
 
-    const STORAGE_KEY = `${PREFIX}-customMenuState`;
+    let STORAGE_KEY = `${PREFIX}-customMenuState`;
 
     let menuEl = null;
     let isOpen = false;
@@ -531,10 +531,29 @@ const CustomMenu = (() => {
         });
     }
 
-    //////////////////////
-    // APPLY STYLES
-    //////////////////////
-    function apply() {
+    function apply(options = {}) {
+        Object.assign(config, options);
+
+        if (options.id) {
+            PREFIX = options.id.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+            MENU_ID = `${PREFIX}-custom-menu`;
+            HEADER_ID = `${PREFIX}-custom-menu-header`;
+            BODY_ID = `${PREFIX}-custom-menu-body`;
+            STORAGE_KEY = `${PREFIX}-customMenuState`;
+
+            // Reload state with the new unique STORAGE_KEY
+            state = typeof GM_getValue === 'function' ? GM_getValue(STORAGE_KEY, {
+                top: config.top,
+                left: config.left,
+                open: false,
+                sections: {}
+            }) : {
+                top: config.top,
+                left: config.left,
+                open: false,
+                sections: {}
+            };
+        }
 
         GM_addStyle(`
             #${MENU_ID} {
@@ -1053,7 +1072,7 @@ const VisualEditor = (() => {
                 border-radius: ${config.borderRadius} !important;
                 flex-shrink: 0 !important;
 
-                touch-action: manipulation !important;
+                touch-action: none !important;
                 -webkit-tap-highlight-color: transparent !important;
                 user-select: none !important;
 
