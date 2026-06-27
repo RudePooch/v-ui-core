@@ -770,62 +770,72 @@ const VisualEditor = (() => {
     let containerLeft = 0;
     let containerTop = 0;
     let lastTapTime = 0;
+    let containerEl = null;
+
+    function startDrag(e) {
+        if (!containerEl) return;
+        isDragging = true;
+        
+        const rect = containerEl.getBoundingClientRect();
+        startX = e.clientX;
+        startY = e.clientY;
+        containerLeft = rect.left;
+        containerTop = rect.top;
+
+        document.addEventListener("pointermove", onPointerMove);
+        document.addEventListener("pointerup", onPointerUp);
+        document.addEventListener("pointercancel", onPointerUp);
+    }
+
+    function onPointerMove(e) {
+        if (!isDragging || !containerEl) return;
+        
+        const deltaX = e.clientX - startX;
+        const deltaY = e.clientY - startY;
+        
+        const newLeft = containerLeft + deltaX;
+        const newTop = containerTop + deltaY;
+        
+        containerEl.style.position = "fixed";
+        containerEl.style.left = `${newLeft}px`;
+        containerEl.style.top = `${newTop}px`;
+        containerEl.style.right = "auto";
+        containerEl.style.bottom = "auto";
+        containerEl.style.transform = "none";
+    }
+
+    function onPointerUp(e) {
+        if (!isDragging) return;
+        stopDrag();
+    }
+
+    function stopDrag() {
+        if (!isDragging) return;
+        isDragging = false;
+        if (!containerEl) return;
+        
+        document.removeEventListener("pointermove", onPointerMove);
+        document.removeEventListener("pointerup", onPointerUp);
+        document.removeEventListener("pointercancel", onPointerUp);
+
+        // Save position to localStorage
+        const rect = containerEl.getBoundingClientRect();
+        localStorage.setItem(POSITION_KEY, JSON.stringify({
+            left: `${rect.left}px`,
+            top: `${rect.top}px`
+        }));
+
+        if (isEditMode) {
+            isEditMode = false;
+            containerEl.classList.remove('vch-container-edit-mode');
+            if (navigator.vibrate) navigator.vibrate(50);
+        }
+    }
 
     function makeContainerDraggable(container) {
         container.addEventListener("pointerdown", (e) => {
             if (!isEditMode) return;
-            
-            isDragging = true;
-            container.setPointerCapture(e.pointerId);
-            
-            const rect = container.getBoundingClientRect();
-            startX = e.clientX;
-            startY = e.clientY;
-            containerLeft = rect.left;
-            containerTop = rect.top;
-            
-            e.stopPropagation();
-            e.preventDefault();
-        });
-
-        container.addEventListener("pointermove", (e) => {
-            if (!isDragging) return;
-            
-            const deltaX = e.clientX - startX;
-            const deltaY = e.clientY - startY;
-            
-            const newLeft = containerLeft + deltaX;
-            const newTop = containerTop + deltaY;
-            
-            container.style.position = "fixed";
-            container.style.left = `${newLeft}px`;
-            container.style.top = `${newTop}px`;
-            container.style.right = "auto";
-            container.style.bottom = "auto";
-            container.style.transform = "none";
-            
-            e.stopPropagation();
-            e.preventDefault();
-        });
-
-        container.addEventListener("pointerup", (e) => {
-            if (!isDragging) return;
-            isDragging = false;
-            
-            // Save position to localStorage
-            const rect = container.getBoundingClientRect();
-            localStorage.setItem(POSITION_KEY, JSON.stringify({
-                left: `${rect.left}px`,
-                top: `${rect.top}px`
-            }));
-
-            // Automatically lock and unhighlight on release
-            if (isEditMode) {
-                isEditMode = false;
-                container.classList.remove('vch-container-edit-mode');
-                if (navigator.vibrate) navigator.vibrate(50);
-            }
-            
+            startDrag(e);
             e.stopPropagation();
             e.preventDefault();
         });
@@ -875,6 +885,7 @@ const VisualEditor = (() => {
 
             makeContainerDraggable(container);
         }
+        containerEl = container;
         return container;
     }
 
@@ -901,7 +912,6 @@ const VisualEditor = (() => {
 
         btn.addEventListener("pointerdown", (e) => {
             e.preventDefault();
-            btn.setPointerCapture(e.pointerId);
             longPressTriggered = false;
             startTouchX = e.clientX;
             startTouchY = e.clientY;
@@ -910,24 +920,15 @@ const VisualEditor = (() => {
             longPressTimer = setTimeout(() => {
                 longPressTriggered = true;
                 isEditMode = !isEditMode;
-                const c = document.getElementById(CONTAINER_ID);
-                if (c) {
+                if (containerEl) {
                     if (isEditMode) {
-                        c.classList.add('vch-container-edit-mode');
+                        containerEl.classList.add('vch-container-edit-mode');
                         if (navigator.vibrate) navigator.vibrate(100);
 
-                        // Capture pointer on container and start dragging immediately
-                        isDragging = true;
-                        c.setPointerCapture(e.pointerId);
-                        const rect = c.getBoundingClientRect();
-                        startX = e.clientX;
-                        startY = e.clientY;
-                        containerLeft = rect.left;
-                        containerTop = rect.top;
+                        // Start dragging immediately
+                        startDrag(e);
                     } else {
-                        c.classList.remove('vch-container-edit-mode');
-                        if (navigator.vibrate) navigator.vibrate([50, 50]);
-                        isDragging = false;
+                        stopDrag();
                     }
                 }
             }, 600);
@@ -953,15 +954,16 @@ const VisualEditor = (() => {
                 const now = Date.now();
                 if (now - lastTapTime < 300) {
                     localStorage.removeItem(POSITION_KEY);
-                    container.style.position = "";
-                    container.style.left = "";
-                    container.style.top = "";
-                    container.style.right = "";
-                    container.style.bottom = "";
-                    container.style.transform = "";
-                    
+                    if (containerEl) {
+                        containerEl.style.position = "";
+                        containerEl.style.left = "";
+                        containerEl.style.top = "";
+                        containerEl.style.right = "";
+                        containerEl.style.bottom = "";
+                        containerEl.style.transform = "";
+                        containerEl.classList.remove('vch-container-edit-mode');
+                    }
                     isEditMode = false;
-                    container.classList.remove('vch-container-edit-mode');
                     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
                     return;
                 }
@@ -969,9 +971,8 @@ const VisualEditor = (() => {
 
                 if (isEditMode) {
                     isEditMode = false;
-                    const c = document.getElementById(CONTAINER_ID);
-                    if (c) {
-                        c.classList.remove('vch-container-edit-mode');
+                    if (containerEl) {
+                        containerEl.classList.remove('vch-container-edit-mode');
                         if (navigator.vibrate) navigator.vibrate(50);
                     }
                 } else {
@@ -979,25 +980,15 @@ const VisualEditor = (() => {
                 }
             } else {
                 // Auto-lock and dehighlight on release after drag
-                isDragging = false;
-                
-                // Save position to localStorage
-                const rect = container.getBoundingClientRect();
-                localStorage.setItem(POSITION_KEY, JSON.stringify({
-                    left: `${rect.left}px`,
-                    top: `${rect.top}px`
-                }));
-
-                if (isEditMode) {
-                    isEditMode = false;
-                    container.classList.remove('vch-container-edit-mode');
-                    if (navigator.vibrate) navigator.vibrate(50);
-                }
+                stopDrag();
             }
         });
 
         btn.addEventListener("pointercancel", (e) => {
             clearTimeout(longPressTimer);
+            if (isDragging) {
+                stopDrag();
+            }
         });
 
         // Add button to the container
