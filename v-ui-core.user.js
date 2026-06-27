@@ -972,11 +972,11 @@ const VisualEditor = (() => {
                 left: ${config.containerLeft};
                 z-index: ${config.zIndex};
 
-                display: flex;
-                flex-direction: ${config.containerDirection};
-                gap: ${config.containerGap};
-                align-items: center;
-                justify-content: center;
+                display: flex !important;
+                flex-direction: ${config.containerDirection} !important;
+                gap: ${config.containerGap} !important;
+                align-items: center !important;
+                justify-content: center !important;
             }
 
             /* CONTAINER EDIT MODE STYLING */
@@ -992,48 +992,52 @@ const VisualEditor = (() => {
 
             /* BUTTON DEFAULTS */
             #${CONTAINER_ID} button {
-                width: ${config.size};
-                height: ${config.size};
-                background-size: contain;
-                background-repeat: no-repeat;
-                background-position: center;
-                border: none;
-                background-color: transparent;
-                cursor: pointer;
-                border-radius: ${config.borderRadius};
-                flex-shrink: 0;
+                position: relative !important;
+                display: inline-block !important;
+                float: none !important;
 
-                touch-action: manipulation;
-                -webkit-tap-highlight-color: transparent;
-                user-select: none;
+                width: ${config.size} !important;
+                height: ${config.size} !important;
+                background-size: contain !important;
+                background-repeat: no-repeat !important;
+                background-position: center !important;
+                border: none !important;
+                background-color: transparent !important;
+                cursor: pointer !important;
+                border-radius: ${config.borderRadius} !important;
+                flex-shrink: 0 !important;
 
-                transition: transform 0.1s ease, filter 0.1s ease;
+                touch-action: manipulation !important;
+                -webkit-tap-highlight-color: transparent !important;
+                user-select: none !important;
+
+                transition: transform 0.1s ease, filter 0.1s ease !important;
             }
 
             #${CONTAINER_ID} button:hover {
-                filter: brightness(1.1);
+                filter: brightness(1.1) !important;
             }
 
             #${CONTAINER_ID} button:active {
-                transform: scale(0.92);
+                transform: scale(0.92) !important;
             }
 
             /* MOBILE OVERRIDES */
             @media (max-width: ${config.mobileBreakpoint}) {
                 #${CONTAINER_ID} {
-                    position: ${config.mobileContainerPosition};
-                    top: ${config.mobileContainerTop};
-                    left: ${config.mobileContainerLeft};
-                    right: ${config.mobileContainerRight};
-                    bottom: ${config.mobileContainerBottom};
-                    transform: ${config.mobileContainerTransform};
+                    position: ${config.mobileContainerPosition} !important;
+                    top: ${config.mobileContainerTop} !important;
+                    left: ${config.mobileContainerLeft} !important;
+                    right: ${config.mobileContainerRight} !important;
+                    bottom: ${config.mobileContainerBottom} !important;
+                    transform: ${config.mobileContainerTransform} !important;
 
-                    flex-direction: ${config.mobileDirection};
+                    flex-direction: ${config.mobileDirection} !important;
                 }
 
                 #${CONTAINER_ID} button {
-                    width: ${config.mobileSize};
-                    height: ${config.mobileSize};
+                    width: ${config.mobileSize} !important;
+                    height: ${config.mobileSize} !important;
                 }
             }
         `);
