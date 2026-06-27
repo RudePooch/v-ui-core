@@ -889,9 +889,19 @@ const VisualEditor = (() => {
                     if (isEditMode) {
                         c.classList.add('vch-container-edit-mode');
                         if (navigator.vibrate) navigator.vibrate(100);
+
+                        // Capture pointer on container and start dragging immediately
+                        isDragging = true;
+                        c.setPointerCapture(e.pointerId);
+                        const rect = c.getBoundingClientRect();
+                        startX = e.clientX;
+                        startY = e.clientY;
+                        containerLeft = rect.left;
+                        containerTop = rect.top;
                     } else {
                         c.classList.remove('vch-container-edit-mode');
                         if (navigator.vibrate) navigator.vibrate([50, 50]);
+                        isDragging = false;
                     }
                 }
             }, 600);
